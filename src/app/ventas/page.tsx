@@ -107,7 +107,8 @@ export default function VentasPage() {
 
         if (!price || price < 0) return 0
 
-        return quantityKg * price
+        return Math.round(quantityKg * price)
+
     }, [selectedVariant, quantityKg, manualPrice])
 
     const total = useMemo(() => {
@@ -197,7 +198,7 @@ export default function VentasPage() {
             updatedCart[existingIndex] = {
                 ...currentItem,
                 quantity: newQty,
-                subtotal: newQty * currentItem.unit_price,
+                subtotal: Math.round(newQty * currentItem.unit_price),
             }
 
             setCart(updatedCart)
@@ -212,7 +213,7 @@ export default function VentasPage() {
             unit_snapshot: selectedVariant.unit,
             quantity: qty,
             unit_price: unitPrice,
-            subtotal: qty * unitPrice,
+            subtotal: Math.round(qty * unitPrice),
         }
 
         setCart((prev) => [...prev, item])
