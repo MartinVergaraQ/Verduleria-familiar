@@ -1,10 +1,13 @@
-import { supabase } from '@/src/lib/supabase/client'
+import { createClient } from '@/src/lib/supabase/client'
 
 export async function createProduct(input: {
+
+
     name: string
     description?: string
     is_active: boolean
 }) {
+    const supabase = createClient()
     const name = input.name.trim()
     const description = input.description?.trim() || null
 

@@ -1,10 +1,12 @@
-import { supabase } from '@/src/lib/supabase/client'
+import { createClient } from '@/src/lib/supabase/client'
 import type { SaleHistoryItem } from '../types/sale-history'
-
+const supabase = createClient()
 export async function getSalesHistory(filters?: {
+
     paymentMethod?: 'all' | 'efectivo' | 'transferencia'
     status?: 'all' | 'completed' | 'cancelled'
-}): Promise<SaleHistoryItem[]> {
+}):
+    Promise<SaleHistoryItem[]> {
     let query = supabase
         .from('sales')
         .select(`

@@ -1,7 +1,8 @@
-import { supabase } from '@/src/lib/supabase/client'
+import { createClient } from '@/src/lib/supabase/client'
 import type { SaleVariantOption } from '../types/sales.item'
 
 export async function getSaleVariants(): Promise<SaleVariantOption[]> {
+  const supabase = createClient()
   const { data, error } = await supabase
     .from('product_variants')
     .select(`

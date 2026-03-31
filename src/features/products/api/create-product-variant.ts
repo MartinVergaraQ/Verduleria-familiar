@@ -1,4 +1,4 @@
-import { supabase } from '@/src/lib/supabase/client'
+import { createClient } from '@/src/lib/supabase/client'
 
 export async function createProductVariant(input: {
     product_id: string
@@ -9,6 +9,7 @@ export async function createProductVariant(input: {
     min_stock: number
     is_active: boolean
 }) {
+    const supabase = createClient()
     if (!input.product_id) {
         throw new Error('Selecciona un producto base')
     }

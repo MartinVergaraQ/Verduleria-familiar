@@ -1,7 +1,9 @@
-import { supabase } from '@/src/lib/supabase/client'
+import { createClient } from '@/src/lib/supabase/client'
 import type { RecentStockMovement } from '../types/dashboard'
 
 export async function getRecentStockMovements(): Promise<RecentStockMovement[]> {
+    const supabase = createClient()
+
     const { data, error } = await supabase
         .from('stock_movements')
         .select(`

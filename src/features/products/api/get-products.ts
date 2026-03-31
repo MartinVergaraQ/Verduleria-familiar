@@ -1,4 +1,4 @@
-import { supabase } from '@/src/lib/supabase/client'
+import { createClient } from '@/src/lib/supabase/client'
 
 export type ProductBaseOption = {
     id: string
@@ -7,6 +7,7 @@ export type ProductBaseOption = {
 }
 
 export async function getProducts(): Promise<ProductBaseOption[]> {
+    const supabase = createClient()
     const { data, error } = await supabase
         .from('products')
         .select('id, name, is_active')

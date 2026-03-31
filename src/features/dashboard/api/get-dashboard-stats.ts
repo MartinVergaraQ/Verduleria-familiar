@@ -1,4 +1,4 @@
-import { supabase } from '@/src/lib/supabase/client'
+import { createClient } from '@/src/lib/supabase/client'
 import type { DashboardStats } from '../types/dashboard'
 
 function startOfToday() {
@@ -19,7 +19,7 @@ function startOfWeek() {
 export async function getDashboardStats(): Promise<DashboardStats> {
     const todayStart = startOfToday()
     const weekStart = startOfWeek()
-
+    const supabase = createClient()
     const [{ data: todaySales, error: todayError }, { data: weekSales, error: weekError }] =
         await Promise.all([
             supabase

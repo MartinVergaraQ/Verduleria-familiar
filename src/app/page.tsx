@@ -1,13 +1,38 @@
+'use client'
+
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/src/lib/supabase/client'
 
 export default function HomePage() {
+  const supabase = createClient()
+  const router = useRouter()
+
+  async function handleLogout() {
+    await supabase.auth.signOut()
+    router.push('/login')
+    router.refresh()
+  }
+
   return (
     <div className="space-y-4">
       <div className="rounded-2xl bg-white p-5 shadow-sm">
-        <h1 className="text-2xl font-bold">Verdulería Familiar</h1>
-        <p className="mt-2 text-sm text-neutral-600">
-          Sistema simple para ventas, stock y resumen.
-        </p>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold">Verdulería Familiar</h1>
+            <p className="mt-2 text-sm text-neutral-600">
+              Sistema simple para ventas, stock y resumen.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="rounded-xl border border-neutral-200 px-3 py-2 text-sm font-semibold"
+          >
+            Salir
+          </button>
+        </div>
       </div>
 
       <nav className="grid gap-3">

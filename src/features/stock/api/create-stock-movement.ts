@@ -1,4 +1,4 @@
-import { supabase } from '@/src/lib/supabase/client'
+import { createClient } from '@/src/lib/supabase/client'
 import type { StockMovementType } from '../types/stock-movement'
 
 export async function createStockMovement(input: {
@@ -7,6 +7,7 @@ export async function createStockMovement(input: {
     quantity: number
     note?: string
 }) {
+    const supabase = createClient()
     if (!input.productVariantId) {
         throw new Error('Selecciona un producto')
     }

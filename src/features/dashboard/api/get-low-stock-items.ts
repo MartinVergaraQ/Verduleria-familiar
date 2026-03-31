@@ -1,7 +1,8 @@
-import { supabase } from '@/src/lib/supabase/client'
+import { createClient } from '@/src/lib/supabase/client'
 import type { LowStockItem } from '../types/dashboard'
 
 export async function getLowStockItems(): Promise<LowStockItem[]> {
+    const supabase = createClient()
     const { data, error } = await supabase
         .from('product_variants')
         .select(`

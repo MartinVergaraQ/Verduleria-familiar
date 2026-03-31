@@ -1,7 +1,8 @@
-import { supabase } from '@/src/lib/supabase/client'
+import { createClient } from '@/src/lib/supabase/client'
 import type { SaleExportItem } from '../types/sale-export-item'
 
 export async function getSalesExportItems(): Promise<SaleExportItem[]> {
+    const supabase = createClient()
     const { data, error } = await supabase
         .from('sale_items')
         .select(`

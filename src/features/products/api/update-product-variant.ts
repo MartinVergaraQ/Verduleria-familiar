@@ -1,4 +1,4 @@
-import { supabase } from '@/src/lib/supabase/client'
+import { createClient } from '@/src/lib/supabase/client'
 
 export async function updateProductVariant(input: {
     id: string
@@ -7,6 +7,7 @@ export async function updateProductVariant(input: {
     is_active: boolean
     is_quick_access: boolean
 }) {
+    const supabase = createClient()
     const { error } = await supabase
         .from('product_variants')
         .update({

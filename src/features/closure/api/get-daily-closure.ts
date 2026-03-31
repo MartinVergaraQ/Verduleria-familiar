@@ -1,4 +1,4 @@
-import { supabase } from '@/src/lib/supabase/client'
+import { createClient } from '@/src/lib/supabase/client'
 import type { DailyClosureSale, DailyClosureStats } from '../types/daily-closure'
 
 function startOfToday() {
@@ -12,7 +12,7 @@ export async function getDailyClosure(): Promise<{
     sales: DailyClosureSale[]
 }> {
     const todayStart = startOfToday()
-
+    const supabase = createClient()
     const { data, error } = await supabase
         .from('sales')
         .select('id, sold_at, total, payment_method, status, notes')

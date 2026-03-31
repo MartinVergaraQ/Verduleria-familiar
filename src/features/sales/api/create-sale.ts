@@ -1,4 +1,4 @@
-import { supabase } from '@/src/lib/supabase/client'
+import { createClient } from '@/src/lib/supabase/client'
 import type { CartItem } from '../types/sales.item'
 
 export async function createSale(
@@ -6,6 +6,8 @@ export async function createSale(
     paymentMethod: 'efectivo' | 'transferencia',
     notes?: string
 ) {
+
+    const supabase = createClient()
     if (!items.length) {
         throw new Error('Agrega al menos un producto')
     }

@@ -1,11 +1,12 @@
-import { supabase } from '@/src/lib/supabase/client'
+import { createClient } from '@/src/lib/supabase/client'
 import type { ProductVariantRow } from '../types/product-variant'
 
 export async function getProductVariants(): Promise<ProductVariantRow[]> {
+  const supabase = createClient()
   const { data, error } = await supabase
     .from('product_variants')
     .select(`
-      id,
+      id, 
       name,
       unit,
       sale_price,
