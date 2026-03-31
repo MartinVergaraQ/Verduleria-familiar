@@ -2,7 +2,7 @@ export type SaleHistoryItem = {
     id: string
     sold_at: string
     total: number
-    payment_method: 'efectivo' | 'transferencia' | 'debito' | 'credito' | 'otro'
+    payment_method: 'efectivo' | 'transferencia'
     status: 'completed' | 'cancelled'
     notes: string | null
     sale_items:

@@ -33,10 +33,36 @@ function getStockState(stock: number) {
     }
 }
 
+function roundToNearest10(value: number) {
+    return Math.round(value / 10) * 10
+}
+
+function isWeightUnit(unit?: string | null) {
+    if (!unit) return false
+    const normalized = unit.trim().toLowerCase()
+    return normalized === 'kg' || normalized === 'kilo' || normalized === 'kilos'
+}
+
+function formatQuantityByUnit(quantity: number, unit?: string | null) {
+    if (isWeightUnit(unit)) {
+        return quantity.toLocaleString('es-CL', {
+            minimumFractionDigits: 3,
+            maximumFractionDigits: 3,
+        })
+    }
+
+    return Number.isInteger(quantity)
+        ? quantity.toLocaleString('es-CL')
+        : quantity.toLocaleString('es-CL', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 3,
+        })
+}
+
 export default function VentasPage() {
     const [variants, setVariants] = useState<SaleVariantOption[]>([])
     const [selectedVariantId, setSelectedVariantId] = useState('')
-    const [weightInput, setWeightInput] = useState('')
+    const [quantityInput, setQuantityInput] = useState('')
     const [manualPrice, setManualPrice] = useState('')
     const [paymentMethod, setPaymentMethod] = useState<'efectivo' | 'transferencia'>('efectivo')
     const [amountReceived, setAmountReceived] = useState('')
@@ -63,23 +89,27 @@ export default function VentasPage() {
         loadData()
     }, [])
 
-
-    function roundToNearest10(value: number) {
-        return Math.round(value / 10) * 10
-    }
-
     const selectedVariant = useMemo(
         () => variants.find((item) => item.id === selectedVariantId) ?? null,
         [variants, selectedVariantId]
     )
 
-    const quantityKg = useMemo(() => {
-        const grams = Number(weightInput)
+    const usesWeightInput = useMemo(
+        () => isWeightUnit(selectedVariant?.unit),
+        [selectedVariant]
+    )
 
-        if (!grams || grams <= 0) return 0
+    const quantityValue = useMemo(() => {
+        const raw = Number(quantityInput)
 
-        return grams / 1000
-    }, [weightInput])
+        if (!raw || raw <= 0) return 0
+
+        if (usesWeightInput) {
+            return raw / 1000
+        }
+
+        return raw
+    }, [quantityInput, usesWeightInput])
 
     const filteredVariants = useMemo(() => {
         const term = search.trim().toLowerCase()
@@ -104,7 +134,7 @@ export default function VentasPage() {
     }, [variants])
 
     const previewSubtotal = useMemo(() => {
-        if (!selectedVariant || quantityKg <= 0) return 0
+        if (!selectedVariant || quantityValue <= 0) return 0
 
         const price = selectedVariant.flexible_price
             ? Number(manualPrice)
@@ -112,9 +142,8 @@ export default function VentasPage() {
 
         if (!price || price < 0) return 0
 
-        return roundToNearest10(Math.round(quantityKg * price))
-
-    }, [selectedVariant, quantityKg, manualPrice])
+        return roundToNearest10(Math.round(quantityValue * price))
+    }, [selectedVariant, quantityValue, manualPrice])
 
     const total = useMemo(() => {
         return cart.reduce((acc, item) => acc + item.subtotal, 0)
@@ -141,7 +170,7 @@ export default function VentasPage() {
 
     function resetProductForm() {
         setSelectedVariantId('')
-        setWeightInput('')
+        setQuantityInput('')
         setManualPrice('')
         setSearch('')
     }
@@ -162,9 +191,13 @@ export default function VentasPage() {
             return
         }
 
-        const qty = quantityKg
+        const qty = quantityValue
         if (!qty || qty <= 0) {
-            setError('Ingresa un peso válido')
+            setError(
+                usesWeightInput
+                    ? 'Ingresa un peso válido en gramos'
+                    : 'Ingresa una cantidad válida'
+            )
             return
         }
 
@@ -339,8 +372,8 @@ export default function VentasPage() {
                                                             type="button"
                                                             onClick={() => handleSelectFrequent(variant.id)}
                                                             className={`rounded-2xl border px-4 py-2.5 text-sm font-semibold transition ${selectedVariantId === variant.id
-                                                                ? 'border-emerald-600 bg-emerald-50 text-emerald-700 shadow-sm'
-                                                                : 'border-[#dce3bf] bg-[#eef3d3] text-[#596335]'
+                                                                    ? 'border-emerald-600 bg-emerald-50 text-emerald-700 shadow-sm'
+                                                                    : 'border-[#dce3bf] bg-[#eef3d3] text-[#596335]'
                                                                 }`}
                                                         >
                                                             {variant.name}
@@ -442,19 +475,22 @@ export default function VentasPage() {
 
                                         <div>
                                             <label className="mb-2 block text-sm font-semibold text-neutral-700">
-                                                Peso en gramos
+                                                {usesWeightInput ? 'Peso en gramos' : 'Cantidad'}
                                             </label>
                                             <input
                                                 type="number"
-                                                inputMode="numeric"
+                                                inputMode={usesWeightInput ? 'numeric' : 'decimal'}
                                                 min="0"
-                                                value={weightInput}
-                                                onChange={(e) => setWeightInput(e.target.value)}
-                                                placeholder="Ej: 1010"
+                                                step={usesWeightInput ? '1' : '1'}
+                                                value={quantityInput}
+                                                onChange={(e) => setQuantityInput(e.target.value)}
+                                                placeholder={usesWeightInput ? 'Ej: 1010' : 'Ej: 1'}
                                                 className="w-full rounded-2xl border border-neutral-200 bg-white p-3.5 text-lg font-semibold outline-none transition focus:border-emerald-500"
                                             />
                                             <p className="mt-1 text-xs text-neutral-500">
-                                                Ejemplo: 1010 = 1.010 kg
+                                                {usesWeightInput
+                                                    ? 'Ejemplo: 1010 = 1.010 kg'
+                                                    : `Ingresa la cantidad de ${selectedVariant?.unit ?? 'unidades'}.`}
                                             </p>
                                         </div>
 
@@ -528,7 +564,7 @@ export default function VentasPage() {
                                                             {item.variant_name_snapshot}
                                                         </p>
                                                         <p className="mt-1 text-sm text-neutral-600">
-                                                            {item.quantity.toFixed(3)} {item.unit_snapshot} × $
+                                                            {formatQuantityByUnit(item.quantity, item.unit_snapshot)} {item.unit_snapshot} × $
                                                             {item.unit_price.toLocaleString('es-CL')}
                                                         </p>
                                                     </div>
@@ -607,8 +643,8 @@ export default function VentasPage() {
 
                                                 <div
                                                     className={`rounded-2xl p-4 shadow-sm ${missingAmount > 0
-                                                        ? 'bg-amber-50 ring-1 ring-amber-100'
-                                                        : 'bg-emerald-50 ring-1 ring-emerald-100'
+                                                            ? 'bg-amber-50 ring-1 ring-amber-100'
+                                                            : 'bg-emerald-50 ring-1 ring-emerald-100'
                                                         }`}
                                                 >
                                                     <p

@@ -13,38 +13,45 @@ import { exportDailyClosureCsv } from '@/src/features/closure/utils/export-daily
 
 function getStatusStyles(status: string) {
     if (status === 'cancelled') {
-        return 'bg-red-100 text-red-700 border-red-200'
+        return 'border-red-200 bg-red-50 text-red-700'
     }
 
-    return 'bg-emerald-100 text-emerald-700 border-emerald-200'
+    return 'border-emerald-200 bg-emerald-50 text-emerald-700'
 }
 
-type StatCardProps = {
+function formatMoney(value: number) {
+    return `$${Math.round(value).toLocaleString('es-CL')}`
+}
+
+type SummaryCardProps = {
     title: string
     value: string
     subtitle?: string
     tone?: 'neutral' | 'green' | 'red'
 }
 
-function StatCard({
+function SummaryCard({
     title,
     value,
     subtitle,
     tone = 'neutral',
-}: StatCardProps) {
-    const toneClasses = {
-        neutral: 'bg-white border-neutral-200',
-        green: 'bg-emerald-50 border-emerald-100',
-        red: 'bg-red-50 border-red-100',
-    }
+}: SummaryCardProps) {
+    const toneClass =
+        tone === 'green'
+            ? 'border-emerald-100 bg-emerald-50/80'
+            : tone === 'red'
+                ? 'border-red-100 bg-red-50/80'
+                : 'border-neutral-200 bg-white'
 
     return (
-        <div className={`rounded-[24px] border p-4 shadow-sm ${toneClasses[tone]}`}>
-            <p className="text-sm text-neutral-500">{title}</p>
-            <p className="mt-2 text-3xl font-extrabold tracking-tight text-neutral-900">
+        <div className={`rounded-[26px] border p-5 shadow-sm ${toneClass}`}>
+            <p className="text-sm font-medium text-neutral-500">{title}</p>
+            <p className="mt-2 text-4xl font-extrabold tracking-tight text-neutral-900">
                 {value}
             </p>
-            {subtitle ? <p className="mt-2 text-xs text-neutral-500">{subtitle}</p> : null}
+            {subtitle ? (
+                <p className="mt-2 text-sm text-neutral-500">{subtitle}</p>
+            ) : null}
         </div>
     )
 }
@@ -85,14 +92,14 @@ export default function CierrePage() {
 
     return (
         <main className="min-h-screen bg-gradient-to-b from-lime-50 via-[#f8f6f1] to-white">
-            <div className="mx-auto w-full max-w-6xl px-4 py-5 pb-10">
-                <div className="space-y-5">
-                    <header className="flex items-start justify-between gap-4">
+            <div className="mx-auto w-full max-w-7xl px-4 py-5 pb-10">
+                <div className="space-y-6">
+                    <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                         <div>
-                            <h1 className="text-3xl font-extrabold tracking-tight text-[#234126]">
+                            <h1 className="text-3xl font-extrabold tracking-tight text-[#234126] md:text-4xl">
                                 Cierre del día
                             </h1>
-                            <p className="mt-1 text-sm text-neutral-500">
+                            <p className="mt-1 text-sm text-neutral-500 md:text-base">
                                 Revisa ventas, montos del día y exporta el resumen cuando lo necesites.
                             </p>
                         </div>
@@ -100,7 +107,7 @@ export default function CierrePage() {
                         <div className="flex items-center gap-2">
                             <Link
                                 href="/"
-                                className="rounded-2xl border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 shadow-sm"
+                                className="rounded-2xl border border-emerald-200 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-700 shadow-sm"
                             >
                                 Volver
                             </Link>
@@ -109,7 +116,7 @@ export default function CierrePage() {
                                 type="button"
                                 onClick={() => exportDailyClosureCsv(sales)}
                                 disabled={sales.length === 0}
-                                className="rounded-2xl bg-[#234126] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-95 disabled:opacity-50"
+                                className="rounded-2xl bg-[#234126] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:brightness-95 disabled:opacity-50"
                             >
                                 Exportar CSV
                             </button>
@@ -130,74 +137,80 @@ export default function CierrePage() {
 
                     {!loading && stats && (
                         <>
-                            <section className="rounded-[28px] bg-gradient-to-br from-[#2f5a2e] via-[#2f5a2e] to-[#487445] p-6 text-white shadow-[0_18px_40px_-16px_rgba(47,90,46,0.5)]">
-                                <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                            <section className="rounded-[32px] bg-gradient-to-br from-[#2f5a2e] via-[#2f5a2e] to-[#487445] p-6 text-white shadow-[0_18px_40px_-16px_rgba(47,90,46,0.5)] md:p-7">
+                                <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
                                     <div>
                                         <p className="text-sm font-medium text-white/80">Resumen del día</p>
-                                        <p className="mt-2 text-4xl font-extrabold tracking-tight">
-                                            ${stats.totalSales.toLocaleString('es-CL')}
+                                        <p className="mt-2 text-4xl font-extrabold tracking-tight md:text-5xl">
+                                            {formatMoney(stats.totalSales)}
                                         </p>
-                                        <p className="mt-2 text-sm text-white/75">
-                                            Total vendido hoy
-                                        </p>
+                                        <p className="mt-2 text-sm text-white/75">Total vendido hoy</p>
                                     </div>
 
-                                    <div className="rounded-2xl bg-white/15 px-4 py-3 text-sm font-semibold backdrop-blur-sm">
-                                        {stats.salesCount} venta{stats.salesCount === 1 ? '' : 's'} completadas
+                                    <div className="grid gap-3 sm:grid-cols-2">
+                                        <div className="rounded-2xl bg-white/12 px-4 py-3 backdrop-blur-sm">
+                                            <p className="text-xs uppercase tracking-wide text-white/70">
+                                                Ventas completadas
+                                            </p>
+                                            <p className="mt-1 text-2xl font-bold">{stats.salesCount}</p>
+                                        </div>
+
+                                        <div className="rounded-2xl bg-white/12 px-4 py-3 backdrop-blur-sm">
+                                            <p className="text-xs uppercase tracking-wide text-white/70">
+                                                Ventas anuladas
+                                            </p>
+                                            <p className="mt-1 text-2xl font-bold">{stats.cancelledCount}</p>
+                                        </div>
                                     </div>
                                 </div>
                             </section>
 
                             <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                                <StatCard
+                                <SummaryCard
                                     title="Total vendido hoy"
-                                    value={`$${stats.totalSales.toLocaleString('es-CL')}`}
+                                    value={formatMoney(stats.totalSales)}
                                     subtitle="Monto total acumulado"
                                     tone="green"
                                 />
 
-                                <StatCard
+                                <SummaryCard
                                     title="Ventas completadas"
                                     value={stats.salesCount.toLocaleString('es-CL')}
                                     subtitle="Ventas cerradas del día"
                                 />
 
-                                <StatCard
+                                <SummaryCard
                                     title="Efectivo"
-                                    value={`$${stats.totalCash.toLocaleString('es-CL')}`}
+                                    value={formatMoney(stats.totalCash)}
                                     subtitle="Ingresos en caja"
                                 />
 
-                                <StatCard
+                                <SummaryCard
                                     title="Transferencia"
-                                    value={`$${stats.totalTransfer.toLocaleString('es-CL')}`}
+                                    value={formatMoney(stats.totalTransfer)}
                                     subtitle="Pagos digitales"
                                 />
                             </section>
 
-                            <section className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+                            <section className="grid gap-5 xl:grid-cols-[0.95fr_1.25fr]">
                                 <div className="space-y-5">
                                     <div className="rounded-[28px] border border-neutral-200 bg-white p-5 shadow-sm">
-                                        <div className="mb-4 flex items-center justify-between">
-                                            <div>
-                                                <h2 className="text-xl font-bold text-neutral-900">
-                                                    Estado general
-                                                </h2>
-                                                <p className="text-sm text-neutral-500">
-                                                    Indicadores rápidos del cierre.
-                                                </p>
-                                            </div>
-                                        </div>
+                                        <h2 className="text-2xl font-bold tracking-tight text-neutral-900">
+                                            Estado general
+                                        </h2>
+                                        <p className="mt-1 text-sm text-neutral-500">
+                                            Indicadores rápidos del cierre.
+                                        </p>
 
-                                        <div className="grid gap-4 sm:grid-cols-2">
-                                            <StatCard
+                                        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                                            <SummaryCard
                                                 title="Ventas anuladas"
                                                 value={stats.cancelledCount.toLocaleString('es-CL')}
                                                 subtitle="Registros anulados hoy"
                                                 tone="red"
                                             />
 
-                                            <StatCard
+                                            <SummaryCard
                                                 title="Ventas activas"
                                                 value={completedSales.length.toLocaleString('es-CL')}
                                                 subtitle="Ventas válidas del día"
@@ -207,10 +220,10 @@ export default function CierrePage() {
 
                                     <div className="rounded-[28px] border border-neutral-200 bg-white p-5 shadow-sm">
                                         <div className="mb-4">
-                                            <h2 className="text-xl font-bold text-neutral-900">
+                                            <h2 className="text-2xl font-bold tracking-tight text-neutral-900">
                                                 Productos más vendidos hoy
                                             </h2>
-                                            <p className="text-sm text-neutral-500">
+                                            <p className="mt-1 text-sm text-neutral-500">
                                                 Lo que más salió durante la jornada.
                                             </p>
                                         </div>
@@ -226,27 +239,27 @@ export default function CierrePage() {
                                                 {topProducts.map((item, index) => (
                                                     <div
                                                         key={`${item.product_name_snapshot}-${item.variant_name_snapshot}-${index}`}
-                                                        className="rounded-[22px] border border-neutral-200 bg-neutral-50 p-4"
+                                                        className="rounded-[24px] border border-neutral-200 bg-neutral-50 p-4"
                                                     >
-                                                        <div className="flex items-start justify-between gap-3">
+                                                        <div className="flex items-start justify-between gap-4">
                                                             <div>
                                                                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
                                                                     {item.product_name_snapshot}
                                                                 </p>
-                                                                <p className="mt-1 text-lg font-bold text-neutral-900">
+                                                                <p className="mt-1 text-2xl font-bold tracking-tight text-neutral-900">
                                                                     {item.variant_name_snapshot}
                                                                 </p>
-                                                                <p className="mt-1 text-sm text-neutral-600">
+                                                                <p className="mt-2 text-base text-neutral-600">
                                                                     {Number(item.total_quantity).toLocaleString('es-CL')}{' '}
                                                                     {item.unit_snapshot} vendidos
                                                                 </p>
                                                             </div>
 
                                                             <div className="text-right">
-                                                                <p className="text-xl font-extrabold text-neutral-900">
-                                                                    ${Number(item.total_amount).toLocaleString('es-CL')}
+                                                                <p className="text-3xl font-extrabold tracking-tight text-neutral-900">
+                                                                    {formatMoney(Number(item.total_amount))}
                                                                 </p>
-                                                                <p className="text-xs text-neutral-500">recaudado</p>
+                                                                <p className="mt-1 text-xs text-neutral-500">recaudado</p>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -257,17 +270,17 @@ export default function CierrePage() {
                                 </div>
 
                                 <div className="rounded-[28px] border border-neutral-200 bg-white p-5 shadow-sm">
-                                    <div className="mb-4 flex items-center justify-between">
+                                    <div className="mb-4 flex items-start justify-between gap-4">
                                         <div>
-                                            <h2 className="text-xl font-bold text-neutral-900">
+                                            <h2 className="text-2xl font-bold tracking-tight text-neutral-900">
                                                 Ventas del día
                                             </h2>
-                                            <p className="text-sm text-neutral-500">
+                                            <p className="mt-1 text-sm text-neutral-500">
                                                 Historial de ventas registradas hoy.
                                             </p>
                                         </div>
 
-                                        <span className="rounded-xl bg-neutral-100 px-3 py-1.5 text-sm font-semibold text-neutral-600">
+                                        <span className="rounded-2xl bg-neutral-100 px-3 py-2 text-sm font-semibold text-neutral-600">
                                             {sales.length} registro{sales.length === 1 ? '' : 's'}
                                         </span>
                                     </div>
@@ -281,27 +294,24 @@ export default function CierrePage() {
                                             {sales.map((sale) => (
                                                 <div
                                                     key={sale.id}
-                                                    className="rounded-[22px] border border-neutral-200 bg-neutral-50 p-4"
+                                                    className="rounded-[24px] border border-neutral-200 bg-neutral-50 p-5"
                                                 >
-                                                    <div className="flex items-start justify-between gap-3">
+                                                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                                                         <div>
-                                                            <p className="text-2xl font-extrabold tracking-tight text-neutral-900">
-                                                                ${Number(sale.total).toLocaleString('es-CL')}
+                                                            <p className="text-4xl font-extrabold tracking-tight text-neutral-900">
+                                                                {formatMoney(Number(sale.total))}
                                                             </p>
-                                                            <p className="mt-1 text-sm text-neutral-600">
-                                                                {sale.payment_method} ·{' '}
-                                                                {new Date(sale.sold_at).toLocaleString('es-CL')}
+                                                            <p className="mt-2 text-base text-neutral-600">
+                                                                {sale.payment_method} · {new Date(sale.sold_at).toLocaleString('es-CL')}
                                                             </p>
 
                                                             {sale.notes ? (
-                                                                <p className="mt-2 text-sm text-neutral-500">
-                                                                    {sale.notes}
-                                                                </p>
+                                                                <p className="mt-2 text-sm text-neutral-500">{sale.notes}</p>
                                                             ) : null}
                                                         </div>
 
                                                         <span
-                                                            className={`rounded-full border px-3 py-1 text-xs font-bold ${getStatusStyles(
+                                                            className={`inline-flex w-fit rounded-full border px-3 py-1.5 text-sm font-bold ${getStatusStyles(
                                                                 sale.status
                                                             )}`}
                                                         >
