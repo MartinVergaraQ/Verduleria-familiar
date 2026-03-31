@@ -41,12 +41,38 @@ function getStockState(stock: number, minStock?: number | null) {
     }
 }
 
+function isWeightUnit(unit?: string | null) {
+    if (!unit) return false
+    const normalized = unit.trim().toLowerCase()
+    return normalized === 'kg' || normalized === 'kilo' || normalized === 'kilos'
+}
+
+function formatInputHint(unit?: string | null, movementType?: StockMovementType, adjustMode?: 'sumar' | 'restar') {
+    if (isWeightUnit(unit)) {
+        if (movementType === 'entrada') {
+            return 'Escribe gramos. Ejemplo: 27135 = 27.135 kg'
+        }
+
+        return adjustMode === 'sumar'
+            ? 'Escribe gramos para aumentar. Ejemplo: 500 = 0.500 kg'
+            : 'Escribe gramos para descontar. Ejemplo: 220 = 0.220 kg'
+    }
+
+    if (movementType === 'entrada') {
+        return 'Usa una cantidad positiva para ingresar mercadería.'
+    }
+
+    return adjustMode === 'sumar'
+        ? 'Usa una cantidad positiva para aumentar stock.'
+        : 'Usa una cantidad positiva para descontar stock.'
+}
+
 export default function StockPage() {
     const [variants, setVariants] = useState<StockVariantOption[]>([])
     const [selectedVariantId, setSelectedVariantId] = useState('')
     const [movementType, setMovementType] = useState<StockMovementType>('entrada')
     const [adjustMode, setAdjustMode] = useState<'sumar' | 'restar'>('sumar')
-    const [quantity, setQuantity] = useState('')
+    const [quantityInput, setQuantityInput] = useState('')
     const [note, setNote] = useState('')
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
@@ -73,6 +99,23 @@ export default function StockPage() {
         [variants, selectedVariantId]
     )
 
+    const usesWeightInput = useMemo(
+        () => isWeightUnit(selectedVariant?.unit),
+        [selectedVariant]
+    )
+
+    const convertedQuantity = useMemo(() => {
+        const raw = Number(quantityInput)
+
+        if (!raw || raw <= 0) return 0
+
+        if (usesWeightInput) {
+            return raw / 1000
+        }
+
+        return raw
+    }, [quantityInput, usesWeightInput])
+
     const selectedState = useMemo(() => {
         if (!selectedVariant) return null
         return getStockState(
@@ -81,30 +124,48 @@ export default function StockPage() {
         )
     }, [selectedVariant])
 
+    const previewNextStock = useMemo(() => {
+        if (!selectedVariant || !convertedQuantity) return null
+
+        const current = Number(selectedVariant.stock)
+        let movementQty = convertedQuantity
+
+        if (movementType === 'ajuste' && adjustMode === 'restar') {
+            movementQty = -convertedQuantity
+        }
+
+        if (movementType === 'entrada') {
+            movementQty = convertedQuantity
+        }
+
+        return current + movementQty
+    }, [selectedVariant, convertedQuantity, movementType, adjustMode])
+
+    async function reloadVariants() {
+        const updated = await getStockVariants()
+        setVariants(updated)
+    }
+
     async function handleSubmit() {
         setSaving(true)
         setError('')
         setSuccess('')
 
         try {
-            let qty = Number(quantity)
-
             if (!selectedVariant) {
                 throw new Error('Selecciona un producto')
             }
 
+            let qty = convertedQuantity
+
             if (!qty || qty === 0) {
-                throw new Error('Ingresa una cantidad válida')
+                throw new Error(
+                    usesWeightInput ? 'Ingresa una cantidad en gramos válida' : 'Ingresa una cantidad válida'
+                )
             }
 
             if (qty < 0) {
                 throw new Error('Ingresa la cantidad sin signo negativo')
-            }
-
-            if (movementType === 'entrada') {
-                if (qty < 0) {
-                    throw new Error('La entrada debe ser positiva')
-                }
             }
 
             if (movementType === 'ajuste') {
@@ -123,10 +184,9 @@ export default function StockPage() {
                 note,
             })
 
-            const updated = await getStockVariants()
-            setVariants(updated)
+            await reloadVariants()
             setSelectedVariantId('')
-            setQuantity('')
+            setQuantityInput('')
             setNote('')
             setMovementType('entrada')
             setAdjustMode('sumar')
@@ -148,7 +208,7 @@ export default function StockPage() {
                                 Stock
                             </h1>
                             <p className="mt-1 text-sm text-neutral-500">
-                                Registra entradas, ajustes y revisa el estado del inventario.
+                                Registra entradas y ajustes sin mezclar gramos con kilos.
                             </p>
                         </div>
 
@@ -212,9 +272,7 @@ export default function StockPage() {
                                         </div>
 
                                         {selectedVariant && selectedState && (
-                                            <div
-                                                className={`rounded-[24px] border p-4 ${selectedState.cardClass}`}
-                                            >
+                                            <div className={`rounded-[24px] border p-4 ${selectedState.cardClass}`}>
                                                 <div className="flex items-start justify-between gap-3">
                                                     <div>
                                                         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
@@ -232,7 +290,7 @@ export default function StockPage() {
                                                     </span>
                                                 </div>
 
-                                                <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                                                <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
                                                     <div className="rounded-2xl bg-white p-3 shadow-sm">
                                                         <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
                                                             Unidad
@@ -257,9 +315,22 @@ export default function StockPage() {
                                                         </p>
                                                         <p className="mt-1 text-lg font-bold text-neutral-900">
                                                             {Number(
-                                                                (selectedVariant as { min_stock?: number | string | null })
-                                                                    .min_stock ?? 0
+                                                                (selectedVariant as { min_stock?: number | string | null }).min_stock ?? 0
                                                             ).toLocaleString('es-CL')}
+                                                        </p>
+                                                    </div>
+
+                                                    <div className="rounded-2xl bg-white p-3 shadow-sm">
+                                                        <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                                                            Próximo stock
+                                                        </p>
+                                                        <p className="mt-1 text-lg font-bold text-neutral-900">
+                                                            {previewNextStock === null
+                                                                ? '—'
+                                                                : previewNextStock.toLocaleString('es-CL', {
+                                                                    minimumFractionDigits: usesWeightInput ? 3 : 0,
+                                                                    maximumFractionDigits: usesWeightInput ? 3 : 3,
+                                                                })}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -333,25 +404,30 @@ export default function StockPage() {
 
                                         <div>
                                             <label className="mb-2 block text-sm font-semibold text-neutral-700">
-                                                Cantidad
+                                                {usesWeightInput ? 'Cantidad en gramos' : 'Cantidad'}
                                             </label>
                                             <input
                                                 type="number"
-                                                inputMode="decimal"
-                                                step="0.001"
+                                                inputMode={usesWeightInput ? 'numeric' : 'decimal'}
+                                                step={usesWeightInput ? '1' : '0.001'}
                                                 min="0"
-                                                value={quantity}
-                                                onChange={(e) => setQuantity(e.target.value)}
-                                                placeholder="Ej: 10"
+                                                value={quantityInput}
+                                                onChange={(e) => setQuantityInput(e.target.value)}
+                                                placeholder={usesWeightInput ? 'Ej: 27135' : 'Ej: 10'}
                                                 className="w-full rounded-2xl border border-neutral-200 bg-white p-3.5 text-lg font-semibold outline-none transition focus:border-emerald-500"
                                             />
                                             <p className="mt-1 text-xs text-neutral-500">
-                                                {movementType === 'entrada'
-                                                    ? 'Usa un número positivo para ingresar mercadería.'
-                                                    : adjustMode === 'sumar'
-                                                        ? 'Usa una cantidad positiva para aumentar stock.'
-                                                        : 'Usa una cantidad positiva para descontar stock.'}
+                                                {formatInputHint(selectedVariant?.unit, movementType, adjustMode)}
                                             </p>
+
+                                            {usesWeightInput && quantityInput && convertedQuantity > 0 && (
+                                                <p className="mt-2 text-sm font-medium text-emerald-700">
+                                                    Equivale a {convertedQuantity.toLocaleString('es-CL', {
+                                                        minimumFractionDigits: 3,
+                                                        maximumFractionDigits: 3,
+                                                    })} kg
+                                                </p>
+                                            )}
                                         </div>
 
                                         <div>
