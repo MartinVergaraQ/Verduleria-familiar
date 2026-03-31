@@ -63,6 +63,11 @@ export default function VentasPage() {
         loadData()
     }, [])
 
+
+    function roundToNearest10(value: number) {
+        return Math.round(value / 10) * 10
+    }
+
     const selectedVariant = useMemo(
         () => variants.find((item) => item.id === selectedVariantId) ?? null,
         [variants, selectedVariantId]
@@ -107,7 +112,7 @@ export default function VentasPage() {
 
         if (!price || price < 0) return 0
 
-        return Math.round(quantityKg * price)
+        return roundToNearest10(Math.round(quantityKg * price))
 
     }, [selectedVariant, quantityKg, manualPrice])
 
@@ -198,7 +203,7 @@ export default function VentasPage() {
             updatedCart[existingIndex] = {
                 ...currentItem,
                 quantity: newQty,
-                subtotal: Math.round(newQty * currentItem.unit_price),
+                subtotal: roundToNearest10(Math.round(newQty * currentItem.unit_price)),
             }
 
             setCart(updatedCart)
@@ -213,7 +218,7 @@ export default function VentasPage() {
             unit_snapshot: selectedVariant.unit,
             quantity: qty,
             unit_price: unitPrice,
-            subtotal: Math.round(qty * unitPrice),
+            subtotal: roundToNearest10(Math.round(qty * unitPrice)),
         }
 
         setCart((prev) => [...prev, item])
