@@ -12,6 +12,27 @@ function getProductName(product: SaleVariantOption['products']): string {
     return product.name
 }
 
+function getStockState(stock: number) {
+    if (stock <= 0) {
+        return {
+            label: 'Sin stock',
+            className: 'border-red-200 bg-red-50 text-red-700',
+        }
+    }
+
+    if (stock <= 3) {
+        return {
+            label: 'Stock bajo',
+            className: 'border-amber-200 bg-amber-50 text-amber-700',
+        }
+    }
+
+    return {
+        label: 'Disponible',
+        className: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    }
+}
+
 export default function VentasPage() {
     const [variants, setVariants] = useState<SaleVariantOption[]>([])
     const [selectedVariantId, setSelectedVariantId] = useState('')
@@ -107,6 +128,10 @@ export default function VentasPage() {
         if (paymentMethod !== 'efectivo') return 0
         return Math.max(0, total - amountReceivedNumber)
     }, [paymentMethod, amountReceivedNumber, total])
+
+    const stockState = useMemo(() => {
+        return getStockState(Number(selectedVariant?.stock ?? 0))
+    }, [selectedVariant])
 
     function resetProductForm() {
         setSelectedVariantId('')
@@ -230,309 +255,427 @@ export default function VentasPage() {
     }
 
     return (
-        <div className="space-y-4 pb-8">
-            <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold">Nueva venta</h1>
-                <Link href="/" className="text-sm font-medium text-green-700">
-                    Volver
-                </Link>
-            </div>
-
-            {loading && (
-                <div className="rounded-2xl bg-white p-4 shadow-sm">
-                    Cargando productos...
-                </div>
-            )}
-
-            {error && (
-                <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">
-                    {error}
-                </div>
-            )}
-
-            {success && (
-                <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-green-700">
-                    {success}
-                </div>
-            )}
-
-            {!loading && (
-                <>
-                    <div className="rounded-2xl bg-white p-4 shadow-sm space-y-4">
+        <main className="min-h-screen bg-gradient-to-b from-lime-50 via-[#f8f6f1] to-white">
+            <div className="mx-auto w-full max-w-5xl px-4 py-5 pb-28">
+                <div className="space-y-5">
+                    <header className="flex items-start justify-between gap-4">
                         <div>
-                            <label className="mb-2 block text-sm font-medium">Producto</label>
+                            <h1 className="text-3xl font-extrabold tracking-tight text-[#234126]">
+                                Nueva venta
+                            </h1>
+                            <p className="mt-1 text-sm text-neutral-500">
+                                Pesa, agrega productos y cobra sin sacar la calculadora.
+                            </p>
+                        </div>
 
-                            <div className="rounded-2xl bg-white p-4 shadow-sm">
-                                <h2 className="text-sm font-semibold text-neutral-700">Frecuentes</h2>
+                        <Link
+                            href="/"
+                            className="rounded-2xl border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 shadow-sm"
+                        >
+                            Volver
+                        </Link>
+                    </header>
 
-                                <div className="mt-3 grid grid-cols-2 gap-2">
-                                    {frequentVariants.map((variant) => (
-                                        <button
-                                            key={variant.id}
-                                            type="button"
-                                            onClick={() => handleSelectFrequent(variant.id)}
-                                            className={`rounded-xl border px-3 py-3 text-left text-sm font-medium ${selectedVariantId === variant.id
-                                                ? 'border-green-600 bg-green-50 text-green-700'
-                                                : 'border-neutral-200 bg-white'
-                                                }`}
-                                        >
-                                            <span className="block">{variant.name}</span>
-                                            <span className="mt-1 block text-xs text-neutral-500">
-                                                Stock: {Number(variant.stock).toLocaleString('es-CL')}
-                                            </span>
-                                        </button>
-                                    ))}
+                    <section className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+                        <div className="space-y-4">
+                            <div className="rounded-[28px] bg-gradient-to-br from-[#2f5a2e] via-[#2f5a2e] to-[#487445] p-5 text-white shadow-[0_18px_40px_-16px_rgba(47,90,46,0.5)]">
+                                <div className="flex items-start justify-between gap-4">
+                                    <div>
+                                        <p className="text-sm font-medium text-white/80">Total acumulado</p>
+                                        <p className="mt-1 text-4xl font-extrabold tracking-tight">
+                                            ${total.toLocaleString('es-CL')}
+                                        </p>
+                                        <p className="mt-2 text-sm text-white/75">
+                                            {cart.length} ítem{cart.length === 1 ? '' : 's'} en la venta
+                                        </p>
+                                    </div>
+
+                                    <div className="rounded-2xl bg-white/15 px-3 py-2 text-sm font-semibold backdrop-blur-sm">
+                                        Caja activa
+                                    </div>
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="mb-2 block text-sm font-medium">Buscar producto</label>
-                                <input
-                                    type="text"
-                                    value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
-                                    placeholder="Ej: tomate, palta, cebolla..."
-                                    className="w-full rounded-xl border border-neutral-200 p-3"
-                                />
-                            </div>
+                            {loading && (
+                                <div className="rounded-[28px] border border-neutral-200 bg-white p-5 shadow-sm">
+                                    Cargando productos...
+                                </div>
+                            )}
 
-                            <div>
-                                <label className="mb-2 block text-sm font-medium">Producto</label>
-                                <select
-                                    value={selectedVariantId}
-                                    onChange={(e) => setSelectedVariantId(e.target.value)}
-                                    className="w-full rounded-xl border border-neutral-200 p-3"
-                                >
-                                    <option value="">Selecciona una variante</option>
-                                    {filteredVariants.map((variant) => (
-                                        <option key={variant.id} value={variant.id}>
-                                            {getProductName(variant.products)} - {variant.name} · Stock:{' '}
-                                            {Number(variant.stock).toLocaleString('es-CL')}
-                                        </option>
-                                    ))}
-                                </select>
+                            {error && (
+                                <div className="rounded-[28px] border border-red-200 bg-red-50 p-4 text-red-700 shadow-sm">
+                                    {error}
+                                </div>
+                            )}
 
-                                {search.trim() && filteredVariants.length === 0 && (
-                                    <p className="mt-2 text-sm text-red-600">
-                                        No se encontraron productos para esa búsqueda.
-                                    </p>
-                                )}
-                            </div>
-                        </div>
+                            {success && (
+                                <div className="rounded-[28px] border border-emerald-200 bg-emerald-50 p-4 text-emerald-700 shadow-sm">
+                                    {success}
+                                </div>
+                            )}
 
-                        {selectedVariant && (
-                            <div className="rounded-xl bg-neutral-50 p-3 text-sm">
-                                <p>
-                                    <span className="font-medium">Unidad:</span> {selectedVariant.unit}
-                                </p>
-                                <p>
-                                    <span className="font-medium">Stock:</span>{' '}
-                                    {Number(selectedVariant.stock).toLocaleString('es-CL')}
-                                </p>
-                                <p>
-                                    <span className="font-medium">Precio:</span>{' '}
-                                    {selectedVariant.flexible_price
-                                        ? 'Flexible'
-                                        : `$${Number(selectedVariant.sale_price ?? 0).toLocaleString('es-CL')}`}
-                                </p>
-                            </div>
-                        )}
-
-                        <div>
-                            <label className="mb-2 block text-sm font-medium">Peso en gramos</label>
-                            <input
-                                type="number"
-                                inputMode="numeric"
-                                min="0"
-                                value={weightInput}
-                                onChange={(e) => setWeightInput(e.target.value)}
-                                placeholder="Ej: 1010"
-                                className="w-full rounded-xl border border-neutral-200 p-3"
-                            />
-                            <p className="mt-1 text-xs text-neutral-500">
-                                Ejemplo: 1010 = 1.010 kg
-                            </p>
-                        </div>
-
-                        {selectedVariant?.flexible_price && (
-                            <div>
-                                <label className="mb-2 block text-sm font-medium">Precio manual</label>
-                                <input
-                                    type="number"
-                                    inputMode="numeric"
-                                    min="0"
-                                    value={manualPrice}
-                                    onChange={(e) => setManualPrice(e.target.value)}
-                                    placeholder="Ej: 700"
-                                    className="w-full rounded-xl border border-neutral-200 p-3"
-                                />
-                            </div>
-                        )}
-
-                        <div className="rounded-xl bg-green-50 p-3">
-                            <p className="text-sm text-green-800">Subtotal</p>
-                            <p className="text-xl font-bold text-green-700">
-                                ${previewSubtotal.toLocaleString('es-CL')}
-                            </p>
-                        </div>
-
-                        <button
-                            type="button"
-                            onClick={handleAddItem}
-                            className="w-full rounded-2xl bg-green-600 px-4 py-4 text-lg font-semibold text-white"
-                        >
-                            Agregar a la venta
-                        </button>
-                    </div>
-
-                    <div className="rounded-2xl bg-white p-4 shadow-sm space-y-4">
-                        <h2 className="text-lg font-bold">Detalle</h2>
-
-                        {cart.length === 0 ? (
-                            <p className="text-sm text-neutral-500">No hay productos agregados todavía.</p>
-                        ) : (
-                            <div className="space-y-3">
-                                {cart.map((item, index) => (
-                                    <div
-                                        key={`${item.product_variant_id}-${index}`}
-                                        className="rounded-xl border border-neutral-200 p-3"
-                                    >
-                                        <div className="flex items-start justify-between gap-3">
+                            {!loading && (
+                                <div className="rounded-[28px] border border-neutral-200 bg-white p-5 shadow-sm">
+                                    <div className="space-y-5">
+                                        {frequentVariants.length > 0 && (
                                             <div>
-                                                <p className="text-xs uppercase text-neutral-500">
-                                                    {item.product_name_snapshot}
-                                                </p>
-                                                <p className="font-semibold">{item.variant_name_snapshot}</p>
-                                                <p className="text-sm text-neutral-600">
-                                                    {item.quantity} {item.unit_snapshot} × $
-                                                    {item.unit_price.toLocaleString('es-CL')}
-                                                </p>
-                                            </div>
+                                                <div className="mb-3 flex items-center justify-between">
+                                                    <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-neutral-500">
+                                                        Frecuentes
+                                                    </h2>
+                                                    <span className="text-xs text-neutral-400">Acceso rápido</span>
+                                                </div>
 
-                                            <button
-                                                type="button"
-                                                onClick={() => handleRemoveItem(index)}
-                                                className="text-sm font-medium text-red-600"
-                                            >
-                                                Quitar
-                                            </button>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {frequentVariants.map((variant) => (
+                                                        <button
+                                                            key={variant.id}
+                                                            type="button"
+                                                            onClick={() => handleSelectFrequent(variant.id)}
+                                                            className={`rounded-2xl border px-4 py-2.5 text-sm font-semibold transition ${selectedVariantId === variant.id
+                                                                ? 'border-emerald-600 bg-emerald-50 text-emerald-700 shadow-sm'
+                                                                : 'border-[#dce3bf] bg-[#eef3d3] text-[#596335]'
+                                                                }`}
+                                                        >
+                                                            {variant.name}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div>
+                                            <label className="mb-2 block text-sm font-semibold text-neutral-700">
+                                                Buscar producto
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={search}
+                                                onChange={(e) => setSearch(e.target.value)}
+                                                placeholder="Ej: tomate, palta, cebolla..."
+                                                className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 p-3.5 outline-none transition focus:border-emerald-500 focus:bg-white"
+                                            />
                                         </div>
 
-                                        <p className="mt-2 text-right text-lg font-bold">
-                                            ${item.subtotal.toLocaleString('es-CL')}
-                                        </p>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                                        <div>
+                                            <label className="mb-2 block text-sm font-semibold text-neutral-700">
+                                                Producto
+                                            </label>
+                                            <select
+                                                value={selectedVariantId}
+                                                onChange={(e) => setSelectedVariantId(e.target.value)}
+                                                className="w-full rounded-2xl border border-neutral-200 bg-white p-3.5 outline-none transition focus:border-emerald-500"
+                                            >
+                                                <option value="">Selecciona una variante</option>
+                                                {filteredVariants.map((variant) => (
+                                                    <option key={variant.id} value={variant.id}>
+                                                        {getProductName(variant.products)} - {variant.name} · Stock:{' '}
+                                                        {Number(variant.stock).toLocaleString('es-CL')}
+                                                    </option>
+                                                ))}
+                                            </select>
 
-                        <div>
-                            <label className="mb-2 block text-sm font-medium">Método de pago</label>
-                            <select
-                                value={paymentMethod}
-                                onChange={(e) =>
-                                    setPaymentMethod(e.target.value as 'efectivo' | 'transferencia')
-                                }
-                                className="w-full rounded-xl border border-neutral-200 p-3"
-                            >
-                                <option value="efectivo">Efectivo</option>
-                                <option value="transferencia">Transferencia</option>
-                            </select>
-                        </div>
-
-                        {paymentMethod === 'efectivo' && (
-                            <div className="space-y-3 rounded-2xl border border-green-100 bg-green-50/50 p-4">
-                                <div>
-                                    <label className="mb-2 block text-sm font-medium text-neutral-800">
-                                        Pago recibido
-                                    </label>
-                                    <input
-                                        type="number"
-                                        inputMode="numeric"
-                                        min="0"
-                                        value={amountReceived}
-                                        onChange={(e) => setAmountReceived(e.target.value)}
-                                        placeholder="Ej: 20000"
-                                        className="w-full rounded-xl border border-neutral-200 bg-white p-3"
-                                    />
-                                </div>
-
-                                <div className="flex flex-wrap gap-2">
-                                    {[2000, 5000, 10000, 20000].map((value) => (
-                                        <button
-                                            key={value}
-                                            type="button"
-                                            onClick={() => handleQuickCash(value)}
-                                            className="rounded-full border border-green-200 bg-white px-3 py-2 text-sm font-semibold text-green-700"
-                                        >
-                                            ${value.toLocaleString('es-CL')}
-                                        </button>
-                                    ))}
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="rounded-xl bg-white p-3">
-                                        <p className="text-sm text-neutral-500">Pago recibido</p>
-                                        <p className="mt-1 text-lg font-bold text-neutral-900">
-                                            ${amountReceivedNumber.toLocaleString('es-CL')}
-                                        </p>
-                                    </div>
-
-                                    <div
-                                        className={`rounded-xl p-3 ${missingAmount > 0 ? 'bg-amber-50' : 'bg-emerald-50'
-                                            }`}
-                                    >
-                                        <p
-                                            className={`text-sm ${missingAmount > 0 ? 'text-amber-700' : 'text-emerald-700'
-                                                }`}
-                                        >
-                                            {missingAmount > 0 ? 'Faltan' : 'Vuelto'}
-                                        </p>
-                                        <p
-                                            className={`mt-1 text-lg font-bold ${missingAmount > 0 ? 'text-amber-700' : 'text-emerald-700'
-                                                }`}
-                                        >
-                                            $
-                                            {(missingAmount > 0 ? missingAmount : change).toLocaleString(
-                                                'es-CL'
+                                            {search.trim() && filteredVariants.length === 0 && (
+                                                <p className="mt-2 text-sm text-red-600">
+                                                    No se encontraron productos para esa búsqueda.
+                                                </p>
                                             )}
+                                        </div>
+
+                                        {selectedVariant && (
+                                            <div className="rounded-[24px] border border-emerald-100 bg-gradient-to-br from-emerald-50 to-lime-50 p-4">
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <div>
+                                                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
+                                                            {getProductName(selectedVariant.products)}
+                                                        </p>
+                                                        <h3 className="mt-1 text-xl font-bold tracking-tight text-neutral-900">
+                                                            {selectedVariant.name}
+                                                        </h3>
+                                                    </div>
+
+                                                    <span
+                                                        className={`rounded-full border px-3 py-1 text-xs font-bold ${stockState.className}`}
+                                                    >
+                                                        {stockState.label}
+                                                    </span>
+                                                </div>
+
+                                                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                                                    <div className="rounded-2xl bg-white p-3 shadow-sm">
+                                                        <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                                                            Unidad
+                                                        </p>
+                                                        <p className="mt-1 text-lg font-bold text-neutral-900">
+                                                            {selectedVariant.unit}
+                                                        </p>
+                                                    </div>
+
+                                                    <div className="rounded-2xl bg-white p-3 shadow-sm">
+                                                        <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                                                            Stock
+                                                        </p>
+                                                        <p className="mt-1 text-lg font-bold text-neutral-900">
+                                                            {Number(selectedVariant.stock).toLocaleString('es-CL')}
+                                                        </p>
+                                                    </div>
+
+                                                    <div className="rounded-2xl bg-white p-3 shadow-sm">
+                                                        <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                                                            Precio
+                                                        </p>
+                                                        <p className="mt-1 text-lg font-bold text-neutral-900">
+                                                            {selectedVariant.flexible_price
+                                                                ? 'Manual'
+                                                                : `$${Number(selectedVariant.sale_price ?? 0).toLocaleString('es-CL')}`}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div>
+                                            <label className="mb-2 block text-sm font-semibold text-neutral-700">
+                                                Peso en gramos
+                                            </label>
+                                            <input
+                                                type="number"
+                                                inputMode="numeric"
+                                                min="0"
+                                                value={weightInput}
+                                                onChange={(e) => setWeightInput(e.target.value)}
+                                                placeholder="Ej: 1010"
+                                                className="w-full rounded-2xl border border-neutral-200 bg-white p-3.5 text-lg font-semibold outline-none transition focus:border-emerald-500"
+                                            />
+                                            <p className="mt-1 text-xs text-neutral-500">
+                                                Ejemplo: 1010 = 1.010 kg
+                                            </p>
+                                        </div>
+
+                                        {selectedVariant?.flexible_price && (
+                                            <div>
+                                                <label className="mb-2 block text-sm font-semibold text-neutral-700">
+                                                    Precio manual
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    inputMode="numeric"
+                                                    min="0"
+                                                    value={manualPrice}
+                                                    onChange={(e) => setManualPrice(e.target.value)}
+                                                    placeholder="Ej: 700"
+                                                    className="w-full rounded-2xl border border-neutral-200 bg-white p-3.5 outline-none transition focus:border-emerald-500"
+                                                />
+                                            </div>
+                                        )}
+
+                                        <div className="rounded-[24px] bg-emerald-50 p-4 ring-1 ring-emerald-100">
+                                            <p className="text-sm font-medium text-emerald-800">Subtotal</p>
+                                            <p className="mt-1 text-3xl font-extrabold tracking-tight text-emerald-700">
+                                                ${previewSubtotal.toLocaleString('es-CL')}
+                                            </p>
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            onClick={handleAddItem}
+                                            className="w-full rounded-2xl bg-[#06b434] px-4 py-4 text-base font-bold text-white shadow-sm transition hover:brightness-95"
+                                        >
+                                            Agregar a la venta
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="rounded-[28px] border border-neutral-200 bg-white p-5 shadow-sm">
+                                <div className="mb-4 flex items-center justify-between">
+                                    <h2 className="text-xl font-bold text-neutral-900">Detalle</h2>
+                                    <span className="rounded-xl bg-neutral-100 px-3 py-1.5 text-sm font-semibold text-neutral-600">
+                                        {cart.length} ítem{cart.length === 1 ? '' : 's'}
+                                    </span>
+                                </div>
+
+                                {cart.length === 0 ? (
+                                    <div className="rounded-[24px] border border-dashed border-neutral-300 bg-neutral-50 p-6 text-center">
+                                        <p className="font-semibold text-neutral-700">
+                                            No hay productos agregados todavía.
+                                        </p>
+                                        <p className="mt-1 text-sm text-neutral-500">
+                                            Agrega productos para armar la venta.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {cart.map((item, index) => (
+                                            <div
+                                                key={`${item.product_variant_id}-${index}`}
+                                                className="rounded-[22px] border border-neutral-200 bg-neutral-50 p-4"
+                                            >
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <div>
+                                                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
+                                                            {item.product_name_snapshot}
+                                                        </p>
+                                                        <p className="mt-1 text-lg font-bold text-neutral-900">
+                                                            {item.variant_name_snapshot}
+                                                        </p>
+                                                        <p className="mt-1 text-sm text-neutral-600">
+                                                            {item.quantity.toFixed(3)} {item.unit_snapshot} × $
+                                                            {item.unit_price.toLocaleString('es-CL')}
+                                                        </p>
+                                                    </div>
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRemoveItem(index)}
+                                                        className="text-sm font-semibold text-red-600"
+                                                    >
+                                                        Quitar
+                                                    </button>
+                                                </div>
+
+                                                <p className="mt-3 text-right text-xl font-extrabold text-neutral-900">
+                                                    ${item.subtotal.toLocaleString('es-CL')}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                <div className="mt-5 space-y-4">
+                                    <div>
+                                        <label className="mb-2 block text-sm font-semibold text-neutral-700">
+                                            Método de pago
+                                        </label>
+                                        <select
+                                            value={paymentMethod}
+                                            onChange={(e) =>
+                                                setPaymentMethod(e.target.value as 'efectivo' | 'transferencia')
+                                            }
+                                            className="w-full rounded-2xl border border-neutral-200 bg-white p-3.5 outline-none transition focus:border-emerald-500"
+                                        >
+                                            <option value="efectivo">Efectivo</option>
+                                            <option value="transferencia">Transferencia</option>
+                                        </select>
+                                    </div>
+
+                                    {paymentMethod === 'efectivo' && (
+                                        <div className="space-y-4 rounded-[24px] border border-emerald-100 bg-gradient-to-br from-emerald-50 to-lime-50 p-4">
+                                            <div>
+                                                <label className="mb-2 block text-sm font-semibold text-neutral-800">
+                                                    Pago recibido
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    inputMode="numeric"
+                                                    min="0"
+                                                    value={amountReceived}
+                                                    onChange={(e) => setAmountReceived(e.target.value)}
+                                                    placeholder="Ej: 20000"
+                                                    className="w-full rounded-2xl border border-neutral-200 bg-white p-3.5 outline-none transition focus:border-emerald-500"
+                                                />
+                                            </div>
+
+                                            <div className="flex flex-wrap gap-2">
+                                                {[2000, 5000, 10000, 20000].map((value) => (
+                                                    <button
+                                                        key={value}
+                                                        type="button"
+                                                        onClick={() => handleQuickCash(value)}
+                                                        className="rounded-full border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-emerald-700 shadow-sm"
+                                                    >
+                                                        ${value.toLocaleString('es-CL')}
+                                                    </button>
+                                                ))}
+                                            </div>
+
+                                            <div className="grid gap-3 sm:grid-cols-2">
+                                                <div className="rounded-2xl bg-white p-4 shadow-sm">
+                                                    <p className="text-sm text-neutral-500">Pago recibido</p>
+                                                    <p className="mt-1 text-xl font-extrabold text-neutral-900">
+                                                        ${amountReceivedNumber.toLocaleString('es-CL')}
+                                                    </p>
+                                                </div>
+
+                                                <div
+                                                    className={`rounded-2xl p-4 shadow-sm ${missingAmount > 0
+                                                        ? 'bg-amber-50 ring-1 ring-amber-100'
+                                                        : 'bg-emerald-50 ring-1 ring-emerald-100'
+                                                        }`}
+                                                >
+                                                    <p
+                                                        className={`text-sm ${missingAmount > 0 ? 'text-amber-700' : 'text-emerald-700'
+                                                            }`}
+                                                    >
+                                                        {missingAmount > 0 ? 'Faltan' : 'Vuelto'}
+                                                    </p>
+                                                    <p
+                                                        className={`mt-1 text-xl font-extrabold ${missingAmount > 0 ? 'text-amber-700' : 'text-emerald-700'
+                                                            }`}
+                                                    >
+                                                        $
+                                                        {(missingAmount > 0 ? missingAmount : change).toLocaleString(
+                                                            'es-CL'
+                                                        )}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div>
+                                        <label className="mb-2 block text-sm font-semibold text-neutral-700">
+                                            Nota
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={notes}
+                                            onChange={(e) => setNotes(e.target.value)}
+                                            placeholder="Opcional"
+                                            className="w-full rounded-2xl border border-neutral-200 bg-white p-3.5 outline-none transition focus:border-emerald-500"
+                                        />
+                                    </div>
+
+                                    <div className="rounded-[24px] bg-neutral-100 p-5">
+                                        <p className="text-sm text-neutral-500">Total</p>
+                                        <p className="mt-1 text-3xl font-extrabold tracking-tight text-neutral-900">
+                                            ${total.toLocaleString('es-CL')}
                                         </p>
                                     </div>
                                 </div>
                             </div>
-                        )}
-
-                        <div>
-                            <label className="mb-2 block text-sm font-medium">Nota</label>
-                            <input
-                                type="text"
-                                value={notes}
-                                onChange={(e) => setNotes(e.target.value)}
-                                placeholder="Opcional"
-                                className="w-full rounded-xl border border-neutral-200 p-3"
-                            />
                         </div>
+                    </section>
 
-                        <div className="rounded-xl bg-neutral-100 p-4">
-                            <p className="text-sm text-neutral-500">Total</p>
-                            <p className="text-2xl font-bold">${total.toLocaleString('es-CL')}</p>
+                    <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-neutral-200 bg-white/90 p-4 backdrop-blur">
+                        <div className="mx-auto flex w-full max-w-5xl items-center gap-3">
+                            <div className="hidden flex-1 rounded-2xl bg-neutral-100 px-4 py-3 sm:block">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                                    Total actual
+                                </p>
+                                <p className="text-2xl font-extrabold text-neutral-900">
+                                    ${total.toLocaleString('es-CL')}
+                                </p>
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={handleSaveSale}
+                                disabled={
+                                    saving ||
+                                    cart.length === 0 ||
+                                    (paymentMethod === 'efectivo' && amountReceivedNumber < total)
+                                }
+                                className="w-full rounded-2xl bg-[#234126] px-5 py-4 text-base font-bold text-white shadow-sm transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                            >
+                                {saving ? 'Guardando...' : 'Guardar venta'}
+                            </button>
                         </div>
-
-                        <button
-                            type="button"
-                            onClick={handleSaveSale}
-                            disabled={
-                                saving ||
-                                cart.length === 0 ||
-                                (paymentMethod === 'efectivo' && amountReceivedNumber < total)
-                            }
-                            className="w-full rounded-2xl bg-black px-4 py-4 text-lg font-semibold text-white disabled:opacity-50"
-                        >
-                            {saving ? 'Guardando...' : 'Guardar venta'}
-                        </button>
                     </div>
-                </>
-            )}
-        </div>
+                </div>
+            </div>
+        </main>
     )
 }
