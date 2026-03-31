@@ -14,7 +14,7 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className="min-h-screen bg-neutral-50 text-neutral-900">
-        <main className="mx-auto w-full max-w-md px-4 py-4">
+        <main className="min-h-screen w-full">
           {children}
         </main>
       </body>

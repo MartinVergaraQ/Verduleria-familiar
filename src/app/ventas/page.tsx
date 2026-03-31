@@ -18,6 +18,7 @@ export default function VentasPage() {
     const [quantity, setQuantity] = useState('')
     const [manualPrice, setManualPrice] = useState('')
     const [paymentMethod, setPaymentMethod] = useState<'efectivo' | 'transferencia'>('efectivo')
+    const [amountReceived, setAmountReceived] = useState('')
     const [notes, setNotes] = useState('')
     const [cart, setCart] = useState<CartItem[]>([])
     const [loading, setLoading] = useState(true)
@@ -85,12 +86,28 @@ export default function VentasPage() {
         return cart.reduce((acc, item) => acc + item.subtotal, 0)
     }, [cart])
 
+    const amountReceivedNumber = useMemo(() => {
+        const value = Number(amountReceived)
+        return Number.isFinite(value) ? value : 0
+    }, [amountReceived])
+
+    const change = useMemo(() => {
+        if (paymentMethod !== 'efectivo') return 0
+        return Math.max(0, amountReceivedNumber - total)
+    }, [paymentMethod, amountReceivedNumber, total])
+
+    const missingAmount = useMemo(() => {
+        if (paymentMethod !== 'efectivo') return 0
+        return Math.max(0, total - amountReceivedNumber)
+    }, [paymentMethod, amountReceivedNumber, total])
+
     function resetProductForm() {
         setSelectedVariantId('')
         setQuantity('')
         setManualPrice('')
         setSearch('')
     }
+
     function handleSelectFrequent(variantId: string) {
         setSelectedVariantId(variantId)
         setSearch('')
@@ -129,6 +146,33 @@ export default function VentasPage() {
 
         const productName = getProductName(selectedVariant.products)
 
+        const existingIndex = cart.findIndex(
+            (item) =>
+                item.product_variant_id === selectedVariant.id &&
+                item.unit_price === unitPrice
+        )
+
+        if (existingIndex >= 0) {
+            const currentItem = cart[existingIndex]
+            const newQty = currentItem.quantity + qty
+
+            if (newQty > Number(selectedVariant.stock)) {
+                setError('La suma supera el stock disponible')
+                return
+            }
+
+            const updatedCart = [...cart]
+            updatedCart[existingIndex] = {
+                ...currentItem,
+                quantity: newQty,
+                subtotal: newQty * currentItem.unit_price,
+            }
+
+            setCart(updatedCart)
+            resetProductForm()
+            return
+        }
+
         const item: CartItem = {
             product_variant_id: selectedVariant.id,
             product_name_snapshot: productName,
@@ -147,16 +191,29 @@ export default function VentasPage() {
         setCart((prev) => prev.filter((_, i) => i !== index))
     }
 
+    function handleQuickCash(value: number) {
+        setAmountReceived(String(value))
+    }
+
     async function handleSaveSale() {
         setSaving(true)
         setError('')
         setSuccess('')
 
         try {
+            if (cart.length === 0) {
+                throw new Error('Agrega al menos un producto')
+            }
+
+            if (paymentMethod === 'efectivo' && amountReceivedNumber < total) {
+                throw new Error('El pago recibido es menor al total')
+            }
+
             await createSale(cart, paymentMethod, notes)
             setCart([])
             setNotes('')
             setPaymentMethod('efectivo')
+            setAmountReceived('')
             setSuccess('Venta guardada correctamente')
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Error guardando venta')
@@ -197,6 +254,7 @@ export default function VentasPage() {
                     <div className="rounded-2xl bg-white p-4 shadow-sm space-y-4">
                         <div>
                             <label className="mb-2 block text-sm font-medium">Producto</label>
+
                             <div className="rounded-2xl bg-white p-4 shadow-sm">
                                 <h2 className="text-sm font-semibold text-neutral-700">Frecuentes</h2>
 
@@ -207,8 +265,8 @@ export default function VentasPage() {
                                             type="button"
                                             onClick={() => handleSelectFrequent(variant.id)}
                                             className={`rounded-xl border px-3 py-3 text-left text-sm font-medium ${selectedVariantId === variant.id
-                                                ? 'border-green-600 bg-green-50 text-green-700'
-                                                : 'border-neutral-200 bg-white'
+                                                    ? 'border-green-600 bg-green-50 text-green-700'
+                                                    : 'border-neutral-200 bg-white'
                                                 }`}
                                         >
                                             <span className="block">{variant.name}</span>
@@ -219,6 +277,7 @@ export default function VentasPage() {
                                     ))}
                                 </div>
                             </div>
+
                             <div>
                                 <label className="mb-2 block text-sm font-medium">Buscar producto</label>
                                 <input
@@ -240,7 +299,8 @@ export default function VentasPage() {
                                     <option value="">Selecciona una variante</option>
                                     {filteredVariants.map((variant) => (
                                         <option key={variant.id} value={variant.id}>
-                                            {getProductName(variant.products)} - {variant.name} · Stock: {Number(variant.stock).toLocaleString('es-CL')}
+                                            {getProductName(variant.products)} - {variant.name} · Stock:{' '}
+                                            {Number(variant.stock).toLocaleString('es-CL')}
                                         </option>
                                     ))}
                                 </select>
@@ -255,8 +315,13 @@ export default function VentasPage() {
 
                         {selectedVariant && (
                             <div className="rounded-xl bg-neutral-50 p-3 text-sm">
-                                <p><span className="font-medium">Unidad:</span> {selectedVariant.unit}</p>
-                                <p><span className="font-medium">Stock:</span> {Number(selectedVariant.stock).toLocaleString('es-CL')}</p>
+                                <p>
+                                    <span className="font-medium">Unidad:</span> {selectedVariant.unit}
+                                </p>
+                                <p>
+                                    <span className="font-medium">Stock:</span>{' '}
+                                    {Number(selectedVariant.stock).toLocaleString('es-CL')}
+                                </p>
                                 <p>
                                     <span className="font-medium">Precio:</span>{' '}
                                     {selectedVariant.flexible_price
@@ -319,13 +384,19 @@ export default function VentasPage() {
                         ) : (
                             <div className="space-y-3">
                                 {cart.map((item, index) => (
-                                    <div key={`${item.product_variant_id}-${index}`} className="rounded-xl border border-neutral-200 p-3">
+                                    <div
+                                        key={`${item.product_variant_id}-${index}`}
+                                        className="rounded-xl border border-neutral-200 p-3"
+                                    >
                                         <div className="flex items-start justify-between gap-3">
                                             <div>
-                                                <p className="text-xs uppercase text-neutral-500">{item.product_name_snapshot}</p>
+                                                <p className="text-xs uppercase text-neutral-500">
+                                                    {item.product_name_snapshot}
+                                                </p>
                                                 <p className="font-semibold">{item.variant_name_snapshot}</p>
                                                 <p className="text-sm text-neutral-600">
-                                                    {item.quantity} {item.unit_snapshot} × ${item.unit_price.toLocaleString('es-CL')}
+                                                    {item.quantity} {item.unit_snapshot} × $
+                                                    {item.unit_price.toLocaleString('es-CL')}
                                                 </p>
                                             </div>
 
@@ -351,9 +422,7 @@ export default function VentasPage() {
                             <select
                                 value={paymentMethod}
                                 onChange={(e) =>
-                                    setPaymentMethod(
-                                        e.target.value as 'efectivo' | 'transferencia'
-                                    )
+                                    setPaymentMethod(e.target.value as 'efectivo' | 'transferencia')
                                 }
                                 className="w-full rounded-xl border border-neutral-200 p-3"
                             >
@@ -361,6 +430,68 @@ export default function VentasPage() {
                                 <option value="transferencia">Transferencia</option>
                             </select>
                         </div>
+
+                        {paymentMethod === 'efectivo' && (
+                            <div className="space-y-3 rounded-2xl border border-green-100 bg-green-50/50 p-4">
+                                <div>
+                                    <label className="mb-2 block text-sm font-medium text-neutral-800">
+                                        Pago recibido
+                                    </label>
+                                    <input
+                                        type="number"
+                                        inputMode="numeric"
+                                        min="0"
+                                        value={amountReceived}
+                                        onChange={(e) => setAmountReceived(e.target.value)}
+                                        placeholder="Ej: 20000"
+                                        className="w-full rounded-xl border border-neutral-200 bg-white p-3"
+                                    />
+                                </div>
+
+                                <div className="flex flex-wrap gap-2">
+                                    {[2000, 5000, 10000, 20000].map((value) => (
+                                        <button
+                                            key={value}
+                                            type="button"
+                                            onClick={() => handleQuickCash(value)}
+                                            className="rounded-full border border-green-200 bg-white px-3 py-2 text-sm font-semibold text-green-700"
+                                        >
+                                            ${value.toLocaleString('es-CL')}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="rounded-xl bg-white p-3">
+                                        <p className="text-sm text-neutral-500">Pago recibido</p>
+                                        <p className="mt-1 text-lg font-bold text-neutral-900">
+                                            ${amountReceivedNumber.toLocaleString('es-CL')}
+                                        </p>
+                                    </div>
+
+                                    <div
+                                        className={`rounded-xl p-3 ${missingAmount > 0 ? 'bg-amber-50' : 'bg-emerald-50'
+                                            }`}
+                                    >
+                                        <p
+                                            className={`text-sm ${missingAmount > 0 ? 'text-amber-700' : 'text-emerald-700'
+                                                }`}
+                                        >
+                                            {missingAmount > 0 ? 'Faltan' : 'Vuelto'}
+                                        </p>
+                                        <p
+                                            className={`mt-1 text-lg font-bold ${missingAmount > 0 ? 'text-amber-700' : 'text-emerald-700'
+                                                }`}
+                                        >
+                                            $
+                                            {(missingAmount > 0 ? missingAmount : change).toLocaleString(
+                                                'es-CL'
+                                            )}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         <div>
                             <label className="mb-2 block text-sm font-medium">Nota</label>
@@ -381,7 +512,11 @@ export default function VentasPage() {
                         <button
                             type="button"
                             onClick={handleSaveSale}
-                            disabled={saving || cart.length === 0}
+                            disabled={
+                                saving ||
+                                cart.length === 0 ||
+                                (paymentMethod === 'efectivo' && amountReceivedNumber < total)
+                            }
                             className="w-full rounded-2xl bg-black px-4 py-4 text-lg font-semibold text-white disabled:opacity-50"
                         >
                             {saving ? 'Guardando...' : 'Guardar venta'}
