@@ -15,7 +15,7 @@ function getProductName(product: SaleVariantOption['products']): string {
 export default function VentasPage() {
     const [variants, setVariants] = useState<SaleVariantOption[]>([])
     const [selectedVariantId, setSelectedVariantId] = useState('')
-    const [quantity, setQuantity] = useState('')
+    const [weightInput, setWeightInput] = useState('')
     const [manualPrice, setManualPrice] = useState('')
     const [paymentMethod, setPaymentMethod] = useState<'efectivo' | 'transferencia'>('efectivo')
     const [amountReceived, setAmountReceived] = useState('')
@@ -47,6 +47,14 @@ export default function VentasPage() {
         [variants, selectedVariantId]
     )
 
+    const quantityKg = useMemo(() => {
+        const grams = Number(weightInput)
+
+        if (!grams || grams <= 0) return 0
+
+        return grams / 1000
+    }, [weightInput])
+
     const filteredVariants = useMemo(() => {
         const term = search.trim().toLowerCase()
 
@@ -70,8 +78,7 @@ export default function VentasPage() {
     }, [variants])
 
     const previewSubtotal = useMemo(() => {
-        const qty = Number(quantity)
-        if (!selectedVariant || !qty || qty <= 0) return 0
+        if (!selectedVariant || quantityKg <= 0) return 0
 
         const price = selectedVariant.flexible_price
             ? Number(manualPrice)
@@ -79,8 +86,8 @@ export default function VentasPage() {
 
         if (!price || price < 0) return 0
 
-        return qty * price
-    }, [selectedVariant, quantity, manualPrice])
+        return quantityKg * price
+    }, [selectedVariant, quantityKg, manualPrice])
 
     const total = useMemo(() => {
         return cart.reduce((acc, item) => acc + item.subtotal, 0)
@@ -103,7 +110,7 @@ export default function VentasPage() {
 
     function resetProductForm() {
         setSelectedVariantId('')
-        setQuantity('')
+        setWeightInput('')
         setManualPrice('')
         setSearch('')
     }
@@ -124,9 +131,9 @@ export default function VentasPage() {
             return
         }
 
-        const qty = Number(quantity)
+        const qty = quantityKg
         if (!qty || qty <= 0) {
-            setError('Ingresa una cantidad válida')
+            setError('Ingresa un peso válido')
             return
         }
 
@@ -265,8 +272,8 @@ export default function VentasPage() {
                                             type="button"
                                             onClick={() => handleSelectFrequent(variant.id)}
                                             className={`rounded-xl border px-3 py-3 text-left text-sm font-medium ${selectedVariantId === variant.id
-                                                    ? 'border-green-600 bg-green-50 text-green-700'
-                                                    : 'border-neutral-200 bg-white'
+                                                ? 'border-green-600 bg-green-50 text-green-700'
+                                                : 'border-neutral-200 bg-white'
                                                 }`}
                                         >
                                             <span className="block">{variant.name}</span>
@@ -332,17 +339,19 @@ export default function VentasPage() {
                         )}
 
                         <div>
-                            <label className="mb-2 block text-sm font-medium">Cantidad</label>
+                            <label className="mb-2 block text-sm font-medium">Peso en gramos</label>
                             <input
                                 type="number"
-                                inputMode="decimal"
-                                step="0.001"
+                                inputMode="numeric"
                                 min="0"
-                                value={quantity}
-                                onChange={(e) => setQuantity(e.target.value)}
-                                placeholder="Ej: 1.5"
+                                value={weightInput}
+                                onChange={(e) => setWeightInput(e.target.value)}
+                                placeholder="Ej: 1010"
                                 className="w-full rounded-xl border border-neutral-200 p-3"
                             />
+                            <p className="mt-1 text-xs text-neutral-500">
+                                Ejemplo: 1010 = 1.010 kg
+                            </p>
                         </div>
 
                         {selectedVariant?.flexible_price && (
