@@ -4,7 +4,7 @@ Sistema POS e inventario para la operación diaria de un comercio local, diseña
 
 ## 🚀 Qué hace
 
-Este proyecto fue construido para resolver necesidades reales de operación en un negocio local, centralizando tareas clave del día a día en una aplicación web simple y directa.
+Proyecto desarrollado y utilizado en la operación real de un negocio familiar. Actualmente se mantiene desplegado como demostración y portafolio, ya que el negocio dejó de operar., centralizando tareas clave del día a día en una aplicación web simple y directa.
 
 Permite:
 
